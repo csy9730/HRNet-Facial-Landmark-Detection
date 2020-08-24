@@ -16,11 +16,13 @@ from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-import lib.models as models
+#import lib.models as models
+from lib.models.hrnet_jx import *
 from lib.config import config, update_config
 from lib.datasets import get_dataset
 from lib.core import function
 from lib.utils import utils
+
 
 
 def parse_args():
@@ -34,13 +36,49 @@ def parse_args():
     update_config(config, args)
     return args
 
+# 输入
+def zal_parse_args():
+
+    parser = argparse.ArgumentParser('train', description='Train Face Alignment')
+    parser.add_argument('--cfg', help='experiment configuration filename',
+                        required=True, type=str)
+    parser.add_argument('--input','-i',default="",action="store",required=True, dest="input",help="input file/folder", type=str)
+    parser.add_argument('--output','-o',default="",action="store", dest="output",help="output file", type=str)
+    cmd = sys.argv
+    args = parser.parse_args(cmd[1:])
+    #print("args.cfg:", args.cfg)
+    #args.cfg.DATASET.TRAINSET = args.input
+
+    update_config(config, args)
+    config.DATASET.TRAINSET = args.input
+    print("args.input:", args.input)
+    print("args.output:", args.output)
+
+    
+
+    return args
+
+# 过程
+#####
+#from eDataProtocol import fStdoutDict,fStdout,TrainProc
+#lst = {"epoch":int(self.epoch_count),           "loss":loss  }
+#fStdoutDict( {"data": lst }) 
+#####
+
+## performance
+#fStdoutDict({"performance": {"loss": 0.133,"nme": 0.951}},'/performance')
 
 def main():
 
-    args = parse_args()
+    #args = parse_args()
+    args = zal_parse_args()
 
     logger, final_output_dir, tb_log_dir = \
         utils.create_logger(config, args.cfg, 'train')
+
+    # ZAL
+    final_output_dir = args.output
+
 
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
@@ -49,7 +87,8 @@ def main():
     cudnn.determinstic = config.CUDNN.DETERMINISTIC
     cudnn.enabled = config.CUDNN.ENABLED
 
-    model = models.get_face_alignment_net(config)
+    #model = models.get_face_alignment_net(config)
+    model = get_face_alignment_net(config)
 
     # copy model files
     writer_dict = {
@@ -68,6 +107,14 @@ def main():
     best_nme = 100
     last_epoch = config.TRAIN.BEGIN_EPOCH
     if config.TRAIN.RESUME:
+        checkpoint = torch.load("./output/se/model_best.pth")
+        last_epoch = checkpoint['epoch']
+        best_nme = checkpoint['best_nme']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        print("=> loaded checkpoint (epoch {})"
+              .format(checkpoint['epoch']))
+        '''
         model_state_file = os.path.join(final_output_dir,
                                         'latest.pth')
         if os.path.islink(model_state_file):
@@ -80,6 +127,7 @@ def main():
                   .format(checkpoint['epoch']))
         else:
             print("=> no checkpoint found")
+        '''
 
     if isinstance(config.TRAIN.LR_STEP, list):
         lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
@@ -110,6 +158,13 @@ def main():
         pin_memory=config.PIN_MEMORY
     )
 
+    # send info
+    #fStdoutDict({"config":{"epochs":2000}},"/config")
+    print("epochs:", config.TRAIN.END_EPOCH)
+
+    # 
+    #fStdoutStatus(TrainProc.ON_FIT_END)
+
     for epoch in range(last_epoch, config.TRAIN.END_EPOCH):
         lr_scheduler.step()
 
@@ -122,15 +177,18 @@ def main():
 
         is_best = nme < best_nme
         best_nme = min(nme, best_nme)
+        #print("nme:", nme)
 
+        model = model.eval()
         logger.info('=> saving checkpoint to {}'.format(final_output_dir))
         print("best:", is_best)
         utils.save_checkpoint(
-            {"state_dict": model,
+            {"state_dict": model.state_dict(),
              "epoch": epoch + 1,
              "best_nme": best_nme,
              "optimizer": optimizer.state_dict(),
              }, predictions, is_best, final_output_dir, 'checkpoint_{}.pth'.format(epoch))
+        model = model.train()
 
     final_model_state_file = os.path.join(final_output_dir,
                                           'final_state.pth')

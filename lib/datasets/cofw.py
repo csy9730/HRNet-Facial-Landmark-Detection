@@ -11,7 +11,7 @@ import torch
 import torch.utils.data as data
 import numpy as np
 
-from hdf5storage import loadmat
+# from hdf5storage import loadmat
 from ..utils.transforms import fliplr_joints, crop, generate_target, transform_pixel
 
 

@@ -232,6 +232,11 @@ class HighResolutionModule(nn.Module):
         for i in range(len(self.fuse_layers)):
             y = x[0] if i == 0 else self.fuse_layers[i][0](x[0])
             for j in range(1, self.num_branches):
+                # print("j:",j)
+                # print("i:",i)
+                # print("[x[i].shape[2], x[i].shape[3]]:", [x[i].shape[2], x[i].shape[3]])
+                # print("self.fuse_layers[i][0](x[0]):", self.fuse_layers[i][0])
+                # print("self.fuse_layers[i][j]:", self.fuse_layers[i][j])
                 if i == j:
                     y = y + x[j]
                 elif j > i:
@@ -277,6 +282,7 @@ class HighResolutionNet(nn.Module):
             num_channels[i] * block.expansion for i in range(len(num_channels))]
         self.transition1 = self._make_transition_layer(
             [256], num_channels)
+
         self.stage2, pre_stage_channels = self._make_stage(
             self.stage2_cfg, num_channels)
 
@@ -404,12 +410,14 @@ class HighResolutionNet(nn.Module):
     def forward(self, x):
         # h, w = x.size(2), x.size(3)
         x = self.conv1(x)
+
         x = self.bn1(x)
         x = self.relu(x)
         x = self.conv2(x)
         x = self.bn2(x)
         x = self.relu(x)
         x = self.layer1(x)
+
 
         x_list = []
         for i in range(self.stage2_cfg['NUM_BRANCHES']):
@@ -419,6 +427,11 @@ class HighResolutionNet(nn.Module):
                 x_list.append(x)
         y_list = self.stage2(x_list)
 
+        # print(y_list[0])
+        # while 1:
+        #     pass
+
+
         x_list = []
         for i in range(self.stage3_cfg['NUM_BRANCHES']):
             if self.transition2[i] is not None:
@@ -427,6 +440,9 @@ class HighResolutionNet(nn.Module):
                 x_list.append(y_list[i])
         y_list = self.stage3(x_list)
 
+
+        
+
         x_list = []
         for i in range(self.stage4_cfg['NUM_BRANCHES']):
             if self.transition3[i] is not None:
@@ -434,6 +450,16 @@ class HighResolutionNet(nn.Module):
             else:
                 x_list.append(y_list[i])
         x = self.stage4(x_list)
+
+        # print("x[0]:", x[0].shape)
+        # print("x[1]:", x[1].shape)
+        # print("x[2]:", x[2].shape)
+        # print("x[3]:", x[3].shape)
+        # print("height:",  x[0].size(2))
+        # print("width:",  x[0].size(3))
+
+        # while 1:
+        #     pass
 
         # Head Part
         height, width = x[0].size(2), x[0].size(3)

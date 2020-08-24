@@ -18,18 +18,26 @@ def get_preds(scores):
     return type: torch.LongTensor
     """
     assert scores.dim() == 4, 'Score maps should be 4-dim'
+
     maxval, idx = torch.max(scores.view(scores.size(0), scores.size(1), -1), 2)
 
     maxval = maxval.view(scores.size(0), scores.size(1), 1)
-    idx = idx.view(scores.size(0), scores.size(1), 1) + 1
 
+    idx = idx.view(scores.size(0), scores.size(1), 1) + 1
     preds = idx.repeat(1, 1, 2).float()
+
+
 
     preds[:, :, 0] = (preds[:, :, 0] - 1) % scores.size(3) + 1
     preds[:, :, 1] = torch.floor((preds[:, :, 1] - 1) / scores.size(3)) + 1
 
+    # print("preds[:, :, 0] :", preds[:, :, 0] )
+    # print("preds[:, :, 1] :", preds[:, :, 1] )
+
     pred_mask = maxval.gt(0).repeat(1, 1, 2).float()
-    preds *= pred_mask
+    #preds *= pred_mask
+
+    #print("preds:", preds)
     return preds
 
 

@@ -40,7 +40,9 @@ class Face300W(data.Dataset):
         self.landmarks_frame = pd.read_csv(self.csv_file)
 
         self.mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
-        self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        #self.std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+        self.std = np.array([0.225, 0.225, 0.225], dtype=np.float32)
+        
 
     def __len__(self):
         return len(self.landmarks_frame)

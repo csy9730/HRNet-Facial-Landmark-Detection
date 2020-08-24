@@ -124,6 +124,10 @@ def get_transform(center, scale, output_size, rot=0):
     t[0, 2] = output_size[1] * (-float(center[0]) / h + .5)
     t[1, 2] = output_size[0] * (-float(center[1]) / h + .5)
     t[2, 2] = 1
+
+    #print("output_size[1] *(-float(center[0])/h:", output_size[1] * (-float(center[0])/h))
+    #print("output_size[1] * (-float(center[0]) / h + .5):", output_size[1] * (-float(center[0]) / h + .5))
+    #
     if not rot == 0:
         rot = -rot  # To match direction of rotation from cropping
         rot_mat = np.zeros((3, 3))
