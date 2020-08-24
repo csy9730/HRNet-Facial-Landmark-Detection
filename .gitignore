@@ -112,3 +112,10 @@ hrnetv2_pretrained/
 output
 log
 *.swp
+
+# add by ljx
+HR18-300W.pth
+data.zip
+model_best.pth
+onnx_model/
+rknn/
